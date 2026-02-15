@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon"
+    "start": "npx prisma migrate deploy && npx prisma generate && node src/server.js"
   },
   "keywords": [],
   "author": "",
