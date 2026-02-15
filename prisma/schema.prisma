@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OFFICER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SyncState {
+  PENDING
+  SYNCED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          Role
+  createdAt     DateTime @default(now())
+  resetTokens PasswordResetToken[]
+
+
+  officerActions AuditLog[]
+
+  attendances Attendance[]
+}
+
+model Station {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  criminals CriminalStation[]
+  attendances Attendance[]
+}
+
+model Criminal {
+  id            String   @id @default(uuid())
+  name          String
+  age           Int
+  address       String
+  description   String
+  riskLevel     RiskLevel
+  photoPath     String
+  archived      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  stations      CriminalStation[]
+  attendances   Attendance[]
+}
+
+model CriminalStation {
+  id          String @id @default(uuid())
+
+  criminalId  String
+  stationId   String
+
+  criminal Criminal @relation(fields: [criminalId], references: [id])
+  station  Station  @relation(fields: [stationId], references: [id])
+
+  @@unique([criminalId, stationId])
+}
+
+model Attendance {
+  id           String   @id @default(uuid())
+
+  photoPath    String
+  timestamp    DateTime @default(now())
+  latitude     Float
+  longitude    Float
+  deviceId     String
+  syncState    SyncState
+
+  officerId    String
+  stationId    String
+  criminalId   String
+
+  officer  User     @relation(fields: [officerId], references: [id])
+  station  Station  @relation(fields: [stationId], references: [id])
+  criminal Criminal @relation(fields: [criminalId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String
+  action      String
+  entity      String
+  entityId    String
+  timestamp   DateTime @default(now())
+  deviceInfo  String?
+
+  actor User @relation(fields: [actorId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
