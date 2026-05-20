@@ -1,20 +1,41 @@
-const prisma = require('../../config/prisma')
+const prisma = require("../../config/prisma");
 
+////////////////////////////////////////////////////////////
+// CREATE STATION
+////////////////////////////////////////////////////////////
 exports.createStation = async (req, res) => {
-    const { name } = req.body
+  try {
+    const { name } = req.body;
 
-    try {
-        const station = await prisma.station.create({
-            data: { name }
-        })
+    const station = await prisma.station.create({
+      data: { name }
+    });
 
-        res.json(station)
-    } catch (err) {
-        res.status(500).json({ error: err.message })
-    }
-}
+    res.json(station);
 
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+////////////////////////////////////////////////////////////
+// LIST STATIONS
+////////////////////////////////////////////////////////////
 exports.listStations = async (req, res) => {
-    const stations = await prisma.station.findMany()
-    res.json(stations)
-}
+  try {
+    const stations = await prisma.station.findMany();
+    res.json(stations);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+////////////////////////////////////////////////////////////
+// ⚠️ REMOVED OLD CRIME FLOW
+// We no longer use Station → Crime → Criminal
+// Criminals now store crimes directly
+////////////////////////////////////////////////////////////
+
+// DO NOT implement getCrimesByStation anymore
+// DO NOT query prisma.crime

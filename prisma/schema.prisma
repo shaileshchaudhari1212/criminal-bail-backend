@@ -30,12 +30,13 @@ model User {
   password      String
   role          Role
   createdAt     DateTime @default(now())
-  resetTokens PasswordResetToken[]
 
+  // ✅ NEW → Soft delete
+  isDeleted     Boolean  @default(false)
 
-  officerActions AuditLog[]
-
-  attendances Attendance[]
+  resetTokens     PasswordResetToken[]
+  officerActions  AuditLog[]
+  attendances     Attendance[]
 }
 
 model Station {
@@ -43,9 +44,13 @@ model Station {
   name      String
   createdAt DateTime @default(now())
 
-  criminals CriminalStation[]
+  criminals   CriminalStation[]
   attendances Attendance[]
 }
+
+//////////////////////////////////////////////////////////////
+// UPDATED → CRIMINAL (NO CRIME TABLE, DIRECT CRIMES ARRAY)
+//////////////////////////////////////////////////////////////
 
 model Criminal {
   id            String   @id @default(uuid())
@@ -58,15 +63,25 @@ model Criminal {
   archived      Boolean  @default(false)
   createdAt     DateTime @default(now())
 
-  stations      CriminalStation[]
-  attendances   Attendance[]
+  ////////////////////////////////////////////////////////////
+  // NEW → MULTIPLE CRIMES (text array)
+  ////////////////////////////////////////////////////////////
+  crimes String[] @default([])
+
+  ////////////////////////////////////////////////////////////
+  // IPC SECTIONS (already existed)
+  ////////////////////////////////////////////////////////////
+  ipcSections String[] @default([])
+
+  stations    CriminalStation[]
+  attendances Attendance[]
 }
 
 model CriminalStation {
-  id          String @id @default(uuid())
+  id String @id @default(uuid())
 
-  criminalId  String
-  stationId   String
+  criminalId String
+  stationId  String
 
   criminal Criminal @relation(fields: [criminalId], references: [id])
   station  Station  @relation(fields: [stationId], references: [id])
@@ -74,19 +89,25 @@ model CriminalStation {
   @@unique([criminalId, stationId])
 }
 
+//////////////////////////////////////////////////////////////
+// ATTENDANCE
+//////////////////////////////////////////////////////////////
+
 model Attendance {
-  id           String   @id @default(uuid())
+  id        String   @id @default(uuid())
 
-  photoPath    String
-  timestamp    DateTime @default(now())
-  latitude     Float
-  longitude    Float
-  deviceId     String
-  syncState    SyncState
+  photoPath String
+  timestamp DateTime @default(now())
+  latitude  Float
+  longitude Float
+  deviceId  String
+  syncState SyncState
 
-  officerId    String
-  stationId    String
-  criminalId   String
+  notes String?
+
+  officerId  String
+  stationId  String
+  criminalId String
 
   officer  User     @relation(fields: [officerId], references: [id])
   station  Station  @relation(fields: [stationId], references: [id])
@@ -94,13 +115,13 @@ model Attendance {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  actorId     String
-  action      String
-  entity      String
-  entityId    String
-  timestamp   DateTime @default(now())
-  deviceInfo  String?
+  id         String   @id @default(uuid())
+  actorId    String
+  action     String
+  entity     String
+  entityId   String
+  timestamp  DateTime @default(now())
+  deviceInfo String?
 
   actor User @relation(fields: [actorId], references: [id])
 }

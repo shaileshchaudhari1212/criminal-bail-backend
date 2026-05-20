@@ -1,31 +1,61 @@
-const express = require('express')
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
 
-const controller = require('../modules/attendance/attendanceController')
-const { protect } = require('../middleware/authMiddleware')
+const {
+  markAttendance,
+  getCriminalAttendance,
+  myAttendance,
+  getAllAttendanceLogs,
+  getAttendanceDetail // ⭐ NEW
+} = require("../modules/attendance/attendanceController");
 
+const { protect, authorize } = require("../middleware/authMiddleware");
+
+////////////////////////////////////////////////////////////
 // MARK ATTENDANCE
-router.post('/attendance', protect, controller.markAttendance)
-
-// CRIMINAL HISTORY
-router.get(
-  '/attendance/criminal/:criminalId',
+////////////////////////////////////////////////////////////
+router.post(
+  "/attendance",
   protect,
-  controller.getCriminalAttendance
-)
+  markAttendance
+);
 
-// OFFICER ATTENDANCE
+////////////////////////////////////////////////////////////
+// GET CRIMINAL HISTORY
+////////////////////////////////////////////////////////////
 router.get(
-  '/attendance/my',
+  "/attendance/criminal/:criminalId",
   protect,
-  controller.myAttendance
-)
+  getCriminalAttendance
+);
 
-// ✅ ADMIN LOGS
+////////////////////////////////////////////////////////////
+// OFFICER HISTORY
+////////////////////////////////////////////////////////////
 router.get(
-  '/attendance/logs',
+  "/attendance/me",
   protect,
-  controller.getAllAttendanceLogs
-)
+  myAttendance
+);
 
-module.exports = router
+////////////////////////////////////////////////////////////
+// ADMIN LOGS
+////////////////////////////////////////////////////////////
+router.get(
+  "/attendance/logs",
+  protect,
+  authorize("ADMIN"),
+  getAllAttendanceLogs
+);
+
+////////////////////////////////////////////////////////////
+// NEW — ADMIN ATTENDANCE DETAIL
+////////////////////////////////////////////////////////////
+router.get(
+  "/attendance/:id",
+  protect,
+  authorize("ADMIN"),
+  getAttendanceDetail
+);
+
+module.exports = router;

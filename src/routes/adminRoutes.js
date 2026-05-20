@@ -3,11 +3,34 @@ const router = require('express').Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const controller = require('../modules/admin/adminController');
 
+////////////////////////////////////////////////////////
+// CREATE ADMIN
+////////////////////////////////////////////////////////
 router.post(
-  '/create-officer',
+  '/',
   protect,
   authorize('ADMIN'),
-  controller.createOfficer
+  controller.createAdmin
+);
+
+////////////////////////////////////////////////////////
+// LIST ADMINS
+////////////////////////////////////////////////////////
+router.get(
+  '/',
+  protect,
+  authorize('ADMIN'),
+  controller.listAdmins
+);
+
+////////////////////////////////////////////////////////
+// DELETE ADMIN
+////////////////////////////////////////////////////////
+router.delete(
+  '/:id',
+  protect,
+  authorize('ADMIN'),
+  controller.deleteAdmin
 );
 
 module.exports = router;

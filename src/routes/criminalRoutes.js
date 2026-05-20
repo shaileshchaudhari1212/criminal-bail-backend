@@ -1,12 +1,62 @@
-const express = require('express')
-const router = express.Router()
+const router = require("express").Router();
 
-const controller = require('../modules/criminal/criminalController')
-const { protect, authorize } = require('../middleware/authMiddleware')
+const controller = require("../modules/criminal/criminalController");
+const { protect } = require("../middleware/authMiddleware");
 
-router.post('/criminal', protect, authorize('ADMIN'), controller.createCriminal)
-router.get('/criminal', protect, controller.listCriminals)
-router.get('/criminal/:id', protect, controller.getCriminal)
-router.put('/criminal/archive/:id', protect, authorize('ADMIN'), controller.archiveCriminal)
+////////////////////////////////////////////////////////////
+// CREATE CRIMINAL
+////////////////////////////////////////////////////////////
+router.post(
+  "/criminal",
+  protect,
+  controller.createCriminal
+);
 
-module.exports = router
+////////////////////////////////////////////////////////////
+// LIST ALL CRIMINALS (ADMIN USE)
+////////////////////////////////////////////////////////////
+router.get(
+  "/criminal",
+  protect,
+  controller.listCriminals
+);
+
+////////////////////////////////////////////////////////////
+// ⭐ GET CRIMINALS BY STATION (OFFICER USE)
+// /api/criminal/station/:stationId
+////////////////////////////////////////////////////////////
+router.get(
+  "/criminal/station/:stationId",
+  protect,
+  controller.getCriminalsByStation
+);
+
+////////////////////////////////////////////////////////////
+// GLOBAL SEARCH
+// /api/criminal/search?q=abc
+////////////////////////////////////////////////////////////
+router.get(
+  "/criminal/search",
+  protect,
+  controller.searchCriminals
+);
+
+////////////////////////////////////////////////////////////
+// GET SINGLE CRIMINAL
+////////////////////////////////////////////////////////////
+router.get(
+  "/criminal/:id",
+  protect,
+  controller.getCriminal
+);
+
+////////////////////////////////////////////////////////////
+// ARCHIVE CRIMINAL
+////////////////////////////////////////////////////////////
+router.patch(
+  "/criminal/:id/archive",
+  protect,
+  controller.archiveCriminal
+);
+
+module.exports = router;

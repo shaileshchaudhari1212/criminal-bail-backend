@@ -1,56 +1,162 @@
-const prisma = require('../../config/prisma');
-const bcrypt = require('bcryptjs');
+const prisma = require('../../config/prisma')
+const { hashPassword } = require('../../utils/hash')
 
-exports.createOfficer = async (req, res) => {
+////////////////////////////////////////////////////////
+// CREATE ADMIN
+////////////////////////////////////////////////////////
+exports.createAdmin = async (req, res) => {
   try {
 
-    if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+    const { name, email, password } = req.body
 
-    const { name, email, password } = req.body;
-
-    // Validate input
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "All fields required" });
+      return res.status(400).json({
+        error: "Name, email and password are required"
+      })
     }
 
-    // Hash password
-    const hash = await bcrypt.hash(password, 10);
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
 
-    // Create officer
-    const officer = await prisma.user.create({
+    if (existingUser) {
+      return res.status(400).json({
+        error: "User with this email already exists"
+      })
+    }
+
+    const hashed = await hashPassword(password)
+
+    const admin = await prisma.user.create({
       data: {
         name,
         email,
-        password: hash,
-        role: 'OFFICER'
+        password: hashed,
+        role: 'ADMIN',
+        isDeleted: false
       }
-    });
+    })
 
-    // ✅ FIXED: Correct AuditLog model + fields
+    // ✅ AUDIT LOG
     await prisma.auditLog.create({
       data: {
         actorId: req.user.id,
-        action: 'CREATE_OFFICER',
+        action: 'CREATE_ADMIN',
         entity: 'USER',
-        entityId: officer.id,
-        deviceInfo: 'ADMIN_PANEL'
+        entityId: admin.id
       }
-    });
+    })
 
-    return res.json({
-      message: "Officer created successfully",
-      officer
-    });
+    res.status(201).json({
+      id: admin.id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      createdAt: admin.createdAt
+    })
 
-  } catch (e) {
+  } catch (err) {
 
-    // Handle duplicate email nicely
-    if (e.code === 'P2002') {
-      return res.status(400).json({ error: "Email already exists" });
+    console.error("CREATE ADMIN ERROR:", err)
+
+    if (err.code === 'P2002') {
+      return res.status(400).json({
+        error: "Email already exists"
+      })
     }
 
-    return res.status(500).json({ error: e.message });
+    res.status(500).json({
+      error: "Internal server error"
+    })
   }
-};
+}
+
+////////////////////////////////////////////////////////
+// LIST ADMINS
+////////////////////////////////////////////////////////
+exports.listAdmins = async (req, res) => {
+  try {
+
+    const admins = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+        isDeleted: false
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    res.json(admins)
+
+  } catch (err) {
+    console.error("LIST ADMIN ERROR:", err)
+    res.status(500).json({ error: "Internal server error" })
+  }
+}
+
+////////////////////////////////////////////////////////
+// DELETE ADMIN
+////////////////////////////////////////////////////////
+exports.deleteAdmin = async (req, res) => {
+
+  const { id } = req.params
+
+  try {
+
+    const admin = await prisma.user.findUnique({
+      where: { id }
+    })
+
+    if (!admin || admin.role !== 'ADMIN') {
+      return res.status(404).json({ error: 'Admin not found' })
+    }
+
+    if (admin.isDeleted) {
+      return res.status(400).json({ error: 'Admin already deleted' })
+    }
+
+    const activeAdminsCount = await prisma.user.count({
+      where: {
+        role: 'ADMIN',
+        isDeleted: false
+      }
+    })
+
+    if (activeAdminsCount <= 1) {
+      return res.status(400).json({
+        error: 'Cannot delete the last active admin'
+      })
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        email: `deleted_${Date.now()}_${admin.email}`
+      }
+    })
+
+    // ✅ AUDIT LOG
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.user.id,
+        action: 'DELETE_ADMIN',
+        entity: 'USER',
+        entityId: id
+      }
+    })
+
+    res.json({ message: 'Admin deleted successfully' })
+
+  } catch (err) {
+    console.error("DELETE ADMIN ERROR:", err)
+    res.status(500).json({ error: "Internal server error" })
+  }
+}
